@@ -1,0 +1,473 @@
+#include <stdio.h>
+#include <stdlib.h>
+#include <string.h>
+#include "lists.h"
+
+/* Add a group with name group_name to the group_list referred to by 
+* group_list_ptr. The groups are ordered by the time that the group was 
+* added to the list with new groups added to the end of the list.
+*
+* Returns 0 on success and -1 if a group with this name already exists.
+*
+* (I.e, allocate and initialize a Group struct, and insert it
+* into the group_list. Note that the head of the group list might change
+* which is why the first argument is a double pointer.) 
+*/
+int add_group(Group **group_list_ptr, const char *group_name) 
+{
+	// testing for wether the given group name exists in the input group list or not
+	Group* test = find_group(*group_list_ptr, group_name);
+	// if the group doesnt exist then create a group struct and initialise its variables with the values
+	if(test == NULL)
+		{
+		// initializing a group node of the the Group struct type
+		Group *group;
+		group = (Group*)malloc(sizeof(Group));
+		// testing for malloc error 
+		if(group == NULL)
+			{
+			error("Memory Error");
+			exit(-1);
+			}
+		// assigning the newly created group struct's name pointer with space
+		group->name = malloc(strlen(group_name) + 1);
+		// testing for malloc error
+    		if(group->name == NULL) 
+			{
+        		perror("Memory Error");
+        		exit(-1);
+			}
+
+		strcpy(group->name, group_name) ;
+		// intializing the parameters of the newly created group data type
+		group->users = NULL;
+		group->xcts = NULL;
+		group->next = NULL;
+		// testing if the group list is empty and if it is empty then we add the newly created group struct to it
+		if(*group_list_ptr == NULL)
+			{
+			*group_list_ptr = group;
+			return 0;
+			}
+		// if the list of groups is not empty then we add the newly created group struct at the end of the group list
+		else
+			{
+			Group* temp1 = *group_list_ptr;
+			while (temp1->next != NULL)
+				{
+				temp1=temp1->next;
+				}
+			temp1->next=group;
+			return 0;
+			}
+			
+	}
+	else
+	{
+   	return -1;
+	}
+}  
+
+/* Print to standard output the names of all groups in group_list, one name
+*  per line. Output is in the same order as group_list.
+*/
+void list_groups(Group *group_list) {
+	// temp stores the address of the head of the input group list
+	Group *temp = group_list;
+	// printing the user name of each node of the group list
+	while(temp != NULL)
+		{
+		printf(" %s\n", temp->name);
+		temp = temp->next;
+		}
+}
+
+/* Search the list of groups for a group with matching group_name
+* If group_name is not found, return NULL, otherwise return a pointer to the 
+* matching group list node.
+*/
+Group *find_group(Group *group_list, const char *group_name) {
+	// temp1 stores the address of the head of the input group list
+	Group* temp1 = group_list;
+	// Temp2 is the variable that stores Null if user not found in the group list or the address of the user node if found and then returns the value
+	Group* temp2 = NULL;
+	// looping through the group list to find if the user with the input user name exists or not.
+	while(temp1 != NULL)
+	{
+	if(strcmp(temp1->name, group_name)==0)
+		{	
+		temp2=temp1;
+		break;
+		}
+	temp1=temp1->next;
+	}
+// returning null if user not found and if user found then returning the address of the user node.
+    return temp2;
+
+}
+
+/* Add a new user with the specified user name to the specified group. Return zero
+* on success and -1 if the group already has a user with that name.
+* (allocate and initialize a User data structure and insert it into the
+* appropriate group list)
+*/
+int add_user(Group *group, const char *user_name) {
+	// finding the node previous to the node with input user name in the given groups user list.
+	User* prev_user = find_prev_user(group, user_name);
+	// if find_prev_user returns NULL that means the user with the given name doesnt exist
+	if (prev_user == NULL)
+	{
+	// initializing a user node of strcut User datatype and allocating memory to it
+	User* new_user = malloc(sizeof(User));
+		// checking for malloc error
+		if(new_user == NULL)
+	{		perror("Memory Error");
+			exit(1);
+	}
+		// allocating memory to the name pointer of the user node
+		new_user->name = malloc(strlen(user_name) + 1);
+		// chekcing for malloc error wether memory assigned to the name pointer of the current user node
+		if(new_user->name == NULL) 
+		{
+			perror("Memory Error");
+			exit(1);
+		}
+		// if memory successfully assigned then copy the input name to the name pointer of the current user node
+		strcpy(new_user->name, user_name);
+		// initializing values of balance and next paramters of the newly created user node
+		new_user->balance = 0.0;
+		new_user->next = NULL;
+		// if the user list of the group is empty then add the user node to the list
+		if(group->users == NULL)
+		{
+			group->users = new_user;
+			return 0;
+		}
+		// else add the user at the first palce of the list and update the head of the list
+		else
+		{
+		new_user->next = group->users;
+		group->users = new_user;
+		return 0;
+		}
+	}
+	else{
+	return -1;
+	} 
+}
+
+/* Remove the user with matching user and group name and
+* remove all her transactions from the transaction list. 
+* Return 0 on success, and -1 if no matching user exists.
+* Remember to free memory no longer needed.
+* (Wait on implementing the removal of the user's transactions until you 
+* get to Part III below, when you will implement transactions.)
+*/
+int remove_user(Group *group, const char *user_name) {
+	// match_user stores the address of the node previous to the node with input user_name
+	User* match_user = find_prev_user(group, user_name);
+	// if user doesnt exist in the group user list
+	if(match_user == NULL)
+	{
+		return -1;
+	}
+	//checking for when the user is in the beginning of the list at either the first or the second position.Match_user will store the address of the 
+	//
+	if((match_user != NULL) && (match_user == group->users))
+	{
+		// removing the user from the user list when the user is at the first position
+		if(strcmp(match_user->name, user_name) == 0)
+		{	//removing the user from the list
+			User* temp1 = match_user;
+			group->users = match_user->next;
+			// freeing the memory of the removed user
+			free(temp1->name);
+			free(temp1);
+			// removing all the transactions of the user from the transaction list of the group
+			remove_xct(group, user_name);
+			return 0;
+		}
+		// removing the user from the user list when the user is at the second position
+		else
+		{
+			//removing the user from the user list
+			User* temp2 = match_user->next; 
+			match_user->next = match_user->next->next;
+			// freeing the memory of the removed user
+			free(temp2->name);	
+			free(temp2);
+			// removing the transactions related to that user from the group transaction list
+			remove_xct(group, user_name);
+			return 0;
+		}
+
+	}
+	// removing the user from the group list when user is presnt at any position other than the first and second place.
+	if((match_user != NULL) && (match_user != group->users))
+		{
+		//removing the user from the group user list
+		User* temp2 = match_user->next; 
+		match_user->next = match_user->next->next;
+		// freeing the memory used by that removed user
+		free(temp2->name);	
+		free(temp2);
+		// removing transactions related to that user from the group transaction list
+		remove_xct(group, user_name);
+		return 0;
+		}	
+	return -1;	
+}
+
+/* Print to standard output the names of all the users in group, one
+* per line, and in the order that users are stored in the list, namely 
+* lowest payer first.
+*/
+void list_users(Group *group) {
+	// the pointer variable current stores the address of the head of the users list of the input group
+	User *current=group->users;
+	// iterating over each node of the user list of the input group and printing name of each user in the list
+	while(current!=NULL){
+		printf("%s\n",current->name);
+		current=current->next;
+	}
+}
+
+/* Print to standard output the balance of the specified user. Return 0
+* on success, or -1 if the user with the given name is not in the group.
+*/
+int user_balance(Group *group, const char *user_name) {
+	// curr_user stores the address of the result of the find_prev_user method
+	User* curr_user = find_prev_user(group, user_name);
+	// temp stores the address of the head of the users list of the input group
+	User* temp = group->users;
+	// if prev_user returns null that means user isnt in the list therefore return -1
+	if(curr_user == NULL)
+	{
+		return -1;
+	}
+	// if orev_user returns an address then it means the user exists and therefore we need to print its value
+	if(curr_user != NULL)
+	{
+		//if the user exists in the beginning of the list then prev_user returns the address of the user itself therefore we
+		// will print the name value of curr_user
+		if((curr_user == temp) && (strcmp(temp->name, user_name)==0))
+		{	
+			printf("User Name : %s", curr_user->name);
+			printf("  Balance : %0.f\n", curr_user->balance);
+			return 0;
+		}
+		//if the user exists in between the list then find_prev_user function returns address of the previous node of the current input user therefore
+		// we need to print the name of the the node next to curr_user;
+		else
+		{
+			printf("User Name : %s", curr_user->next->name);
+			printf("  Balance : %0.f\n", curr_user->next->balance);
+			return 0;
+		}
+	}
+	return -1;
+	}
+
+/* Print to standard output the name of the user who has paid the least 
+* If there are several users with equal least amounts, all names are output. 
+* Returns 0 on success, and -1 if the list of users is empty.
+* (This should be easy, since your list is sorted by balance). 
+*/
+int under_paid(Group *group) {
+	// pointer variable current stores the address of the head of the users list of the input group
+	User *current=group->users;
+	// stores the value of the least balance in the list
+	double min_balance=0.0;
+	// if user list is empty print -1
+	if(current==NULL){
+		return -1;
+	}
+	else{
+		// the user in the beginning of the list will have least balance therefore min balance will store that
+		min_balance=current->balance;
+		// iterating over the user list and printing names of all the users with the balance same as min balance
+		while(current!=NULL){
+			if(current->balance==min_balance){
+				printf("%s\n",current->name);
+			}
+			current=current->next;
+		}
+		return 0;
+	}
+}
+
+/* Return a pointer to the user prior to the one in group with user_name. If 
+* the matching user is the first in the list (i.e. there is no prior user in 
+* the list), return a pointer to the matching user itself. If no matching user 
+* exists, return NULL. 
+*
+* The reason for returning the prior user is that returning the matching user 
+* itself does not allow us to change the user that occurs before the
+* matching user, and some of the functions you will implement require that
+* we be able to do this.
+*/
+User *find_prev_user(Group *group, const char *user_name) 
+{
+	// the pointer variable temp stores the address of the users list of the input group
+	User* temp = group->users;
+	// IF USER LIST IS EMPTY RETURN NULL
+	if(temp == NULL)
+	{
+	return NULL;
+	}
+	// works when the user list is not empty
+	if(temp != NULL)
+	{
+		//if the input user is the first user in the list return null since this user wont have a previous user
+		if(strcmp(temp->name, user_name) == 0)
+		{
+			return temp;
+		}
+		//while loop checks wether the current nodes next node has the same user name as the input user name.Once found it returns the current node.
+		while(temp->next != NULL)
+		{
+			if(strcmp(temp->next->name, user_name) == 0)
+			{
+				return temp;
+			}
+			temp = temp->next;
+		}
+	}
+	return NULL;
+}
+
+/* Add the transaction represented by user_name and amount to the appropriate 
+* transaction list, and update the balances of the corresponding user and group. 
+* Note that updating a user's balance might require the user to be moved to a
+* different position in the list to keep the list in sorted order. Returns 0 on
+* success, and -1 if the specified user does not exist.
+*/
+int add_xct(Group *group, const char *user_name, double amount) {
+	// transaction pointer holds address of memory block of size Xct struct
+	Xct *transaction=(Xct*)malloc(sizeof(Xct));
+	User *user=NULL;
+	User *previous_user= find_prev_user(group,user_name);
+	// if previous user is null that means the user with this name doesnt exist in the group therefore return -1
+	if(previous_user==NULL){
+		return -1;
+	}	
+	// checking for maloc error when assigning memory to transaction pointer
+	if(transaction==NULL){
+		perror("Memory Error");
+	}
+	else{
+		// assigning space to the name pointer of this transaction node
+		transaction->name = malloc(strlen(user_name) + 1);
+		if(transaction->name==NULL){
+			perror("Memory Error");
+		}
+		// assigning name to this transaction node before adding it to the transaction list
+		strcpy(transaction->name, user_name);
+		// adding the transaction int he groups transaction list and updating the pointer to the head of the list
+		transaction->amount=amount;
+		transaction->next=group->xcts;
+		group->xcts=transaction;
+		// checking wether the user is int eh beginning of the list or in between
+		if(strcmp(previous_user->name,user_name)==0){
+			user=previous_user;
+		}
+		else{
+			user=previous_user->next;
+			}
+		// updating the balance of the user.
+		user->balance=user->balance+amount;
+		// sorting the user list based on the new balance of the user
+		while(user->next!=NULL && user->balance>(user->next)->balance)
+		{
+			User *previous=find_prev_user(group,user->name);
+			User *next_user=user->next;
+			// if the user is in the beginning of the list 
+			if(strcmp(previous->name,user->name)==0){
+				group->users=next_user;
+				User *temp=next_user->next;
+				next_user->next=user;
+				user->next=temp;	
+			}
+			// if the user is in the middle of the list
+			else{
+				previous->next=user->next;
+				User *temp=previous->next;
+				User *temp2=temp->next;
+				temp->next=user;
+				user->next=temp2;		
+			}
+		}
+	}
+	return 0;
+}
+
+/* Print to standard output the num_xct most recent transactions for the 
+* specified group (or fewer transactions if there are less than num_xct 
+* transactions posted for this group). The output should have one line per 
+* transaction that prints the name and the amount of the transaction. If 
+* there are no transactions, this function will print nothing.
+*/
+void recent_xct(Group *group, long nu_xct) {
+	// the pointer variable group stores the address of the head of the groups transaction list
+	Xct *current=group->xcts;
+	// counter to keep a check of how many transactions are being printed. When the input number has been reached we should stop printing transactions.
+	long counter=0.0;
+	// if the group's transaction list is empty or the number of input transactions to be printed is 0 our program should just return
+	if(current==NULL || nu_xct==0){
+		return;
+	}
+	else{
+		// while loop will terminate once the input number of transactions have been printed or when the we reached the end of the transaction list.
+		while(current!=NULL && counter<=nu_xct){
+			printf("Username:%s,TotalTransactionAmount:%0.2f\n",current->name,current->amount);
+				current=current->next;
+				counter=counter+1;
+		}
+}
+}
+
+/* Remove all transactions that belong to the user_name from the group's 
+* transaction list. This helper function should be called by remove_user. 
+* If there are no transactions for this user, the function should do nothing.
+* Remember to free memory no longer needed.
+*/
+void remove_xct(Group *group, const char *user_name) {
+	// storing the address of the head of the transaction list of the given group in the pointer variable current
+	Xct *current= group->xcts;
+	// if the input groups transaction list is empty
+	if(current==NULL){
+		return;
+	}
+	// checking if the transactions of the input user are in the beginning
+	while(strcmp(current->name,user_name)==0){
+		Xct *remove=current;
+		Xct *next=current->next;
+		group->xcts=next;
+		free(remove->name);
+		free(remove);
+		current=group->xcts;
+		if(current==NULL){
+			return;
+		}
+		
+	}
+		/**we know that the above while loop terminated when the current transaction it encountered didnt match with the input user name. So we will start checking for transactions that match		
+		the input user name starting from the transaction right after the current transaction.**/
+		while(current->next!=NULL)
+		{
+			// checking if the names match
+			while(strcmp((current->next)->name,user_name) == 0)
+				{
+				// need to remove the transaction now whose name matched with the input name
+				Xct *temp=current->next;
+				Xct *temp2=temp->next;
+				current->next=temp2;
+				// freeing the memory whose address was being stored by the removed transaction node.
+				free(temp->name);
+				free(temp);
+				}
+			// going to the next transaction to check if the names match. If the names match then we have to delete the transaction from the list.
+			current=current->next;
+	}	
+
+}
